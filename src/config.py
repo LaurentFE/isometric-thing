@@ -26,6 +26,10 @@ MAP_X_OFFSET = SPRITE_SIZE // 2
 MAP_Y_OFFSET = SPRITE_SIZE // 4
 CHARACTER_X_CENTER_OFFSET = 0
 CHARACTER_Y_CENTER_OFFSET = -8
+TILE0_X = (SCREEN_WIDTH - SPRITE_SIZE) // 2
+TILE0_Y = SPRITE_SIZE
+TILE_X_OFFSET = SPRITE_SIZE // 2
+TILE_Y_OFFSET = SPRITE_SIZE // 4
 
 # TILE TYPES
 #
@@ -42,4 +46,5 @@ CHARACTER_TYPES = [CHARACTER_TEST]
 #
 UNKNOWN_TILE_TYPE = 'Requested Tile_Type for TileSet is unknown'
 UNKNOWN_CHARACTER_TYPE = 'Requested Character_Type for TileSet is unknown'
-UNKNOWN_CAMERA_ORIENTATION = 'Unknown Camera Orientation'
+UNKNOWN_CAMERA_ORIENTATION = f'Unknown Camera Orientation, assuming {CAMERA_NORTH}'
+INCORRECT_COORD_FORMAT = 'Incorrect coord format. Expected : (x, y, z)'
