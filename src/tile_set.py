@@ -3,7 +3,7 @@ import src.config as cfg
 
 
 class TileSet:
-    def __init__(self, tile_type, type_label=None):
+    def __init__(self, tile_type: str, type_label: str=None) -> None:
         super().__init__()
 
         self.images = {}
@@ -30,7 +30,9 @@ class TileSet:
                 for i in range(sprite_rows * sprites_per_row):
                     x = (i % sprites_per_row) * cfg.SPRITE_SIZE
                     y = (i // sprites_per_row) * cfg.SPRITE_SIZE
-                    oriented_sprites[i] = self.images[orientation].subsurface((x, y, sprite_width, sprite_height)).convert_alpha()
+                    oriented_sprites[i] = self.images[orientation].subsurface(
+                        (x, y, sprite_width, sprite_height)
+                    ).convert_alpha()
 
                 self.sprites[orientation] = oriented_sprites
         else:
