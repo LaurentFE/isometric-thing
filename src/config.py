@@ -1,5 +1,7 @@
 # DISPLAY
 #
+import pygame
+
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 FPS = 60
@@ -13,6 +15,17 @@ GRAPHICS_FOLDER = './graphics/'
 GRAPHICS_TERRAIN_FOLDER = GRAPHICS_FOLDER + 'terrain/'
 MAPS_EXTENSION = '.csv'
 MAPS_FOLDER = './maps/'
+
+# KEYBOARD INPUT
+#
+KEY_PRESSED_COOLDOWN = 100
+KEY_DL = pygame.K_q
+KEY_DR = pygame.K_s
+KEY_UR = pygame.K_z
+KEY_UL = pygame.K_a
+KEY_CAMERA_CLOCKWISE = pygame.K_r
+KEY_CAMERA_COUNTERCLOCKWISE = pygame.K_t
+KEY_QUIT = pygame.K_ESCAPE
 
 # SPRITE INFO
 #
@@ -48,6 +61,11 @@ CHARACTER_SE = CAMERA_SOUTH + CAMERA_EAST
 CHARACTER_NE = CAMERA_NORTH + CAMERA_EAST
 CHARACTER_NW = CAMERA_NORTH + CAMERA_WEST
 CHARACTER_ORIENTATIONS = [CHARACTER_SW, CHARACTER_SE, CHARACTER_NE, CHARACTER_NW]
+MV_DL = 'DL'
+MV_DR = 'DR'
+MV_UR = 'UR'
+MV_UL = 'UL'
+MV_DIRECTIONS = [MV_DL, MV_DR, MV_UR, MV_UL]
 # Test Character
 CTEST_IDLE_FRAMES = 1
 CTEST_IDLE_SW_SPRITE_ID = 0
@@ -60,4 +78,6 @@ CTEST_IDLE_NW_SPRITE_ID = 30
 UNKNOWN_TILE_TYPE = 'Requested Tile_Type for TileSet is unknown'
 UNKNOWN_CHARACTER_TYPE = 'Requested Character_Type for TileSet is unknown'
 UNKNOWN_CAMERA_ORIENTATION = f'Unknown Camera Orientation, assuming {CAMERA_NORTH}'
+UNKNOWN_MOVE_DIRECTION = 'Requested Move_Direction is unknown'
 INCORRECT_COORD_FORMAT = 'Incorrect coord format. Expected : (x, y, z)'
+NOT_IMPLEMENTED_MOVE_DIRECTION = 'Requested Move_Direction is not implemented'

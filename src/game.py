@@ -33,8 +33,11 @@ class Game(metaclass=Singleton):
             self.map.append(sup.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
         self.map_width = len(self.map[0][0])
         self.map_length = len(self.map[0])
+        self.camera_orientation = cfg.CAMERA_NORTH
 
         self.test_character = character.Character((), cfg.CHARACTER_TEST, (2, 2, 1))
+        self.key_pressed_start_timer = 0
+        self.key_pressed_cooldown = cfg.KEY_PRESSED_COOLDOWN
 
     def display_level(self, camera_orientation: str) -> None:
         for map_x in range(self.map_width):
@@ -62,28 +65,54 @@ class Game(metaclass=Singleton):
                         self.screen.blit(self.test_character.get_display_sprite(camera_orientation),
                                          self.test_character.get_rectangle(camera_orientation))
 
+    def handle_input(self, inputs: list) -> None:
+        current_time = pygame.time.get_ticks()
+        if current_time - self.key_pressed_start_timer >= self.key_pressed_cooldown:
+            self.key_pressed_start_timer = current_time
+
+            if cfg.KEY_DL in inputs:
+                self.test_character.move(cfg.MV_DL, self.camera_orientation)
+                inputs.remove(cfg.KEY_DL)
+            elif cfg.KEY_DR in inputs:
+                self.test_character.move(cfg.MV_DR, self.camera_orientation)
+                inputs.remove(cfg.KEY_DR)
+            elif cfg.KEY_UR in inputs:
+                self.test_character.move(cfg.MV_UR, self.camera_orientation)
+                inputs.remove(cfg.KEY_UR)
+            elif cfg.KEY_UL in inputs:
+                self.test_character.move(cfg.MV_UL, self.camera_orientation)
+                inputs.remove(cfg.KEY_UL)
+            elif cfg.KEY_CAMERA_CLOCKWISE in inputs:
+                camera_id = cfg.CAMERA_ORIENTATIONS.index(self.camera_orientation)
+                camera_id = (camera_id + 1) % len(cfg.CAMERA_ORIENTATIONS)
+                self.camera_orientation = cfg.CAMERA_ORIENTATIONS[camera_id]
+                inputs.remove(cfg.KEY_CAMERA_CLOCKWISE)
+            elif cfg.KEY_CAMERA_COUNTERCLOCKWISE in inputs:
+                camera_id = cfg.CAMERA_ORIENTATIONS.index(self.camera_orientation)
+                camera_id -= 1
+                if camera_id < 0:
+                    camera_id = len(cfg.CAMERA_ORIENTATIONS) - 1
+                self.camera_orientation = cfg.CAMERA_ORIENTATIONS[camera_id]
+                inputs.remove(cfg.KEY_CAMERA_COUNTERCLOCKWISE)
+            elif cfg.KEY_QUIT in inputs:
+                pygame.quit()
+                sys.exit()
+
     def run(self) -> None:
-        camera_orientation = 0
-        orientation_cooldown = 2000
-        camera_change_time = 0
+        keys_pressed = []
         while True:
             self.screen.fill(cfg.BACKGROUND_COLOR_NAME)
 
             # Run game loop here before display update
-            self.display_level(cfg.CAMERA_ORIENTATIONS[camera_orientation])
+            self.display_level(self.camera_orientation)
 
             pygame.display.update()
             self.clock.tick(cfg.FPS)
-
-            current_time = pygame.time.get_ticks()
-            if camera_change_time == 0:
-                camera_change_time = current_time
-
-            if current_time - camera_change_time >= orientation_cooldown:
-                camera_orientation = (camera_orientation + 1) % len(cfg.CAMERA_ORIENTATIONS)
-                camera_change_time = current_time
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    keys_pressed.append(event.key)
+            self.handle_input(keys_pressed)

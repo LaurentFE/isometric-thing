@@ -142,3 +142,44 @@ class Character(pygame.sprite.Sprite):
             return True
         else:
             return False
+
+    def move(self, direction: str, camera_orientation: str) -> None:
+        if direction not in cfg.MV_DIRECTIONS:
+            raise ValueError(cfg.UNKNOWN_MOVE_DIRECTION + ':' + direction)
+        if camera_orientation not in cfg.CAMERA_ORIENTATIONS:
+            print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', camera_orientation, file=sys.stderr, flush=True)
+            camera_orientation = cfg.CAMERA_NORTH
+
+        offset_dict = {
+            cfg.MV_DL: {
+                cfg.CAMERA_NORTH: (0, 1),
+                cfg.CAMERA_WEST: (1, 0),
+                cfg.CAMERA_SOUTH: (0, -1),
+                cfg.CAMERA_EAST: (-1, 0)
+            },
+            cfg.MV_DR: {
+                cfg.CAMERA_NORTH: (1, 0),
+                cfg.CAMERA_WEST: (0, -1),
+                cfg.CAMERA_SOUTH: (-1, 0),
+                cfg.CAMERA_EAST: (0, 1)
+            },
+            cfg.MV_UR: {
+                cfg.CAMERA_NORTH: (0, -1),
+                cfg.CAMERA_WEST: (-1, 0),
+                cfg.CAMERA_SOUTH: (0, 1),
+                cfg.CAMERA_EAST: (1, 0)
+            },
+            cfg.MV_UL: {
+                cfg.CAMERA_NORTH: (-1, 0),
+                cfg.CAMERA_WEST: (0, 1),
+                cfg.CAMERA_SOUTH: (1, 0),
+                cfg.CAMERA_EAST: (0, -1)
+            }
+        }
+
+        direction_dict = offset_dict.get(direction)
+        if direction_dict is None:
+            raise NotImplementedError(cfg.NOT_IMPLEMENTED_MOVE_DIRECTION + ':' + direction)
+        else:
+            self.coord_x += direction_dict[camera_orientation][0]
+            self.coord_y += direction_dict[camera_orientation][1]
