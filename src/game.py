@@ -31,8 +31,6 @@ class Game(metaclass=Singleton):
         self.map_name = 'proto_map_homemade'
         for i in range(3):
             self.map.append(sup.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
-        self.map_width = len(self.map[0][0])
-        self.map_length = len(self.map[0])
         self.camera_orientation = cfg.CAMERA_NORTH
 
         self.test_character = character.Character((), cfg.CHARACTER_TEST, (2, 2, 1))
@@ -40,8 +38,8 @@ class Game(metaclass=Singleton):
         self.key_pressed_cooldown = cfg.KEY_PRESSED_COOLDOWN
 
     def display_level(self, camera_orientation: str) -> None:
-        for map_x in range(self.map_width):
-            for map_y in range(self.map_length):
+        for map_x in range(cfg.MAP_WIDTH):
+            for map_y in range(cfg.MAP_LENGTH):
                 for map_z in range(len(self.map)):
                     if camera_orientation not in cfg.CAMERA_ORIENTATIONS:
                         print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', camera_orientation, file=sys.stderr, flush=True)

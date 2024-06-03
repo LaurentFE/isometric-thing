@@ -181,5 +181,12 @@ class Character(pygame.sprite.Sprite):
         if direction_dict is None:
             raise NotImplementedError(cfg.NOT_IMPLEMENTED_MOVE_DIRECTION + ':' + direction)
         else:
-            self.coord_x += direction_dict[camera_orientation][0]
-            self.coord_y += direction_dict[camera_orientation][1]
+            x = self.coord_x + direction_dict[camera_orientation][0]
+            y = self.coord_y + direction_dict[camera_orientation][1]
+            out_of_bounds = (x < 0
+                             or x >= cfg.MAP_WIDTH
+                             or y < 0
+                             or y >= cfg.MAP_LENGTH)
+            if not out_of_bounds:
+                self.coord_x = x
+                self.coord_y = y
