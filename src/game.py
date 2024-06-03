@@ -29,7 +29,8 @@ class Game(metaclass=Singleton):
         # At least two, for the couples of views that don't share width & length.
         self.map = []
         self.map_name = 'proto_map_homemade'
-        for i in range(4):
+        self.map_height = 4
+        for i in range(self.map_height):
             self.map.append(sup.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
         self.camera_orientation = cfg.CAMERA_NORTH
 
@@ -56,23 +57,24 @@ class Game(metaclass=Singleton):
     def display_level(self) -> None:
         for map_x in range(cfg.MAP_WIDTH):
             for map_y in range(cfg.MAP_LENGTH):
-                for map_z in range(len(self.map)):
+                for map_z in range(len(self.map) + 1):
                     if self.camera_orientation not in cfg.CAMERA_ORIENTATIONS:
                         print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', self.camera_orientation, file=sys.stderr, flush=True)
                         self.camera_orientation = cfg.CAMERA_NORTH
 
-                    sprite_id = self.get_orientation_tile_sprite_id((map_x, map_y, map_z))
-                    player_x, player_y, player_z = self.test_character.get_orientation_coord(self.camera_orientation)
-                    if sprite_id != -1:
-                        sprite = tile_set.TERRAIN_TILE_SET.get_sprite_image(sprite_id, self.camera_orientation)
-                        # Make a tile translucent to reveal character behind
-                        if self.test_character.is_character_behind_tile((map_x, map_y, map_z),
-                                                                        self.camera_orientation):
-                            sprite.set_alpha(128)
-                        self.screen.blit(sprite, sup.get_sprite_rect((map_x, map_y, map_z)))
+                    if map_z < len(self.map):
+                        sprite_id = self.get_orientation_tile_sprite_id((map_x, map_y, map_z))
+                        if sprite_id != -1:
+                            sprite = tile_set.TERRAIN_TILE_SET.get_sprite_image(sprite_id, self.camera_orientation)
+                            # Make a tile translucent to reveal character behind
+                            if self.test_character.is_character_behind_tile((map_x, map_y, map_z),
+                                                                            self.camera_orientation):
+                                sprite.set_alpha(128)
+                            self.screen.blit(sprite, sup.get_sprite_rect((map_x, map_y, map_z)))
 
                     # Draws a character at its proper coordinates
                     # Redraws a character if a tile behind it but higher hides the previous character drawing
+                    player_x, player_y, player_z = self.test_character.get_orientation_coord(self.camera_orientation)
                     if player_x == map_x and player_y == map_y and player_z == map_z:
                         character_ground_tile_id = self.get_orientation_tile_sprite_id((map_x, map_y, map_z - 1))
                         is_on_stairs = character_ground_tile_id in cfg.TILE_STAIRS_SLOPES
@@ -110,37 +112,40 @@ class Game(metaclass=Singleton):
                          or new_y < 0
                          or new_y >= cfg.MAP_LENGTH)
         if not out_of_bounds:
-            collide_tile_id = int(self.map[char_z][new_y][new_x])
-            # Will the player collide with a tile on the same Z as them
-            if collide_tile_id != -1:
-                # Is this tile stairs or a slope
-                if collide_tile_id in cfg.TILE_STAIRS_SLOPES:
-                    # Move up a level
-                    z_offset += 1
-                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
-                else:
-                    # Collision with terrain that can't be crossed, ignore move command
-                    pass
-            else:
-                curr_ground_tile_id = int(self.map[char_z - 1][char_y][char_x])
-                next_ground_tile_id = int(self.map[char_z - 1][new_y][new_x])
-                # Will the player stand on solid ground
-                if (next_ground_tile_id == 0
-                        or next_ground_tile_id in cfg.TILE_STAIRS_SLOPES):
-                    # Stay on the same level
-                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
-                else:
-                    # Is the player currently on stairs or slope
-                    if curr_ground_tile_id in cfg.TILE_STAIRS_SLOPES:
-                        # Move down a level
-                        z_offset -= 1
+            is_on_highest_tile = char_z == self.map_height
+            if not is_on_highest_tile:
+                collide_tile_id = int(self.map[char_z][new_y][new_x])
+                # Will the player collide with a tile on the same Z as them
+                if collide_tile_id != -1:
+                    # Is this tile stairs or a slope
+                    if collide_tile_id in cfg.TILE_STAIRS_SLOPES:
+                        # Move up a level
+                        z_offset = 1
                         self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+                        return
                     else:
-                        # Can't jump off of cliffs, ignore move command
-                        pass
+                        # Collision with terrain that can't be crossed, ignore move command
+                        return
+
+            curr_ground_tile_id = int(self.map[char_z - 1][char_y][char_x])
+            next_ground_tile_id = int(self.map[char_z - 1][new_y][new_x])
+            # Will the player stand on solid ground
+            if (next_ground_tile_id == 0
+                    or next_ground_tile_id in cfg.TILE_STAIRS_SLOPES):
+                # Stay on the same level
+                self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+            else:
+                # Is the player currently on stairs or slope
+                if curr_ground_tile_id in cfg.TILE_STAIRS_SLOPES:
+                    # Move down a level
+                    z_offset = -1
+                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+                else:
+                    # Can't jump off of cliffs, ignore move command
+                    return
         else:
             # Out of bounds, ignore move command
-            pass
+            return
 
     def handle_input(self, inputs: list) -> None:
         current_time = pygame.time.get_ticks()
