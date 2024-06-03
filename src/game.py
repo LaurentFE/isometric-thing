@@ -29,11 +29,11 @@ class Game(metaclass=Singleton):
         # At least two, for the couples of views that don't share width & length.
         self.map = []
         self.map_name = 'proto_map_homemade'
-        for i in range(3):
+        for i in range(4):
             self.map.append(sup.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
         self.camera_orientation = cfg.CAMERA_NORTH
 
-        self.test_character = character.Character((), cfg.CHARACTER_TEST, (2, 2, 1))
+        self.test_character = character.Character((), cfg.CHARACTER_TEST, (2, 2, 2))
         self.key_pressed_start_timer = 0
         self.key_pressed_cooldown = cfg.KEY_PRESSED_COOLDOWN
 
