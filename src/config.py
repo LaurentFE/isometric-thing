@@ -41,6 +41,7 @@ MAP_X_OFFSET = SPRITE_SIZE // 2
 MAP_Y_OFFSET = SPRITE_SIZE // 4
 CHARACTER_X_CENTER_OFFSET = 0
 CHARACTER_Y_CENTER_OFFSET = -8
+CHARACTER_STAIRS_Y_OFFSET = SPRITE_SIZE // 4
 TILE0_X = (SCREEN_WIDTH - SPRITE_SIZE) // 2
 TILE0_Y = SPRITE_SIZE
 TILE_X_OFFSET = SPRITE_SIZE // 2
@@ -51,6 +52,7 @@ TILE_Y_OFFSET = SPRITE_SIZE // 4
 TILE_TERRAIN = 'terrain'
 TILE_CHARACTER = 'character'
 TILE_TYPES = [TILE_TERRAIN, TILE_CHARACTER]
+TILE_STAIRS_SLOPES = [4, 5, 6, 7, 8, 9, 10, 11]
 
 # CHARACTERS
 #
@@ -66,6 +68,32 @@ MV_DR = 'DR'
 MV_UR = 'UR'
 MV_UL = 'UL'
 MV_DIRECTIONS = [MV_DL, MV_DR, MV_UR, MV_UL]
+MV_OFFSET_DICT = {
+    MV_DL: {
+        CAMERA_NORTH: (0, 1),
+        CAMERA_WEST: (1, 0),
+        CAMERA_SOUTH: (0, -1),
+        CAMERA_EAST: (-1, 0)
+    },
+    MV_DR: {
+        CAMERA_NORTH: (1, 0),
+        CAMERA_WEST: (0, -1),
+        CAMERA_SOUTH: (-1, 0),
+        CAMERA_EAST: (0, 1)
+    },
+    MV_UR: {
+        CAMERA_NORTH: (0, -1),
+        CAMERA_WEST: (-1, 0),
+        CAMERA_SOUTH: (0, 1),
+        CAMERA_EAST: (1, 0)
+    },
+    MV_UL: {
+        CAMERA_NORTH: (-1, 0),
+        CAMERA_WEST: (0, 1),
+        CAMERA_SOUTH: (1, 0),
+        CAMERA_EAST: (0, -1)
+    }
+}
 # Test Character
 CTEST_IDLE_FRAMES = 1
 CTEST_IDLE_SW_SPRITE_ID = 0
