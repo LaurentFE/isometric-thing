@@ -117,7 +117,7 @@ class Game(metaclass=Singleton):
                     # Collision with terrain that can't be crossed, ignore move command
                     pass
             else:
-                curr_ground_tile = int(self.map[char_z - 1][char_y][char_x])
+                curr_ground_tile_id = int(self.map[char_z - 1][char_y][char_x])
                 next_ground_tile_id = int(self.map[char_z - 1][new_y][new_x])
                 # Will the player stand on solid ground
                 if (next_ground_tile_id == 0
@@ -126,7 +126,7 @@ class Game(metaclass=Singleton):
                     self.test_character.move(x_offset, y_offset, z_offset)
                 else:
                     # Is the player currently on stairs or slope
-                    if curr_ground_tile in cfg.TILE_STAIRS_SLOPES:
+                    if curr_ground_tile_id in cfg.TILE_STAIRS_SLOPES:
                         # Move down a level
                         z_offset -= 1
                         self.test_character.move(x_offset, y_offset, z_offset)
