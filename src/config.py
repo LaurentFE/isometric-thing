@@ -94,6 +94,32 @@ MV_OFFSET_DICT = {
         CAMERA_EAST: (0, -1)
     }
 }
+MV_CHAR_ORIENTATION_DICT = {
+    MV_DL: {
+        CAMERA_NORTH: CHARACTER_SW,
+        CAMERA_WEST: CHARACTER_SE,
+        CAMERA_SOUTH: CHARACTER_NE,
+        CAMERA_EAST: CHARACTER_NW
+    },
+    MV_DR: {
+        CAMERA_NORTH: CHARACTER_SE,
+        CAMERA_WEST: CHARACTER_NE,
+        CAMERA_SOUTH: CHARACTER_NW,
+        CAMERA_EAST: CHARACTER_SW
+    },
+    MV_UR: {
+        CAMERA_NORTH: CHARACTER_NE,
+        CAMERA_WEST: CHARACTER_NW,
+        CAMERA_SOUTH: CHARACTER_SW,
+        CAMERA_EAST: CHARACTER_SE
+    },
+    MV_UL: {
+        CAMERA_NORTH: CHARACTER_NW,
+        CAMERA_WEST: CHARACTER_SW,
+        CAMERA_SOUTH: CHARACTER_SE,
+        CAMERA_EAST: CHARACTER_NE
+    }
+}
 # Test Character
 CTEST_IDLE_FRAMES = 1
 CTEST_IDLE_SW_SPRITE_ID = 0
@@ -109,3 +135,4 @@ UNKNOWN_CAMERA_ORIENTATION = f'Unknown Camera Orientation, assuming {CAMERA_NORT
 UNKNOWN_MOVE_DIRECTION = 'Requested Move_Direction is unknown'
 INCORRECT_COORD_FORMAT = 'Incorrect coord format. Expected : (x, y, z)'
 NOT_IMPLEMENTED_MOVE_DIRECTION = 'Requested Move_Direction is not implemented'
+NOT_IMPLEMENTED_MOVE_ORIENTATION = 'Requestions Char_Orientation is not implemented'

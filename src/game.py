@@ -98,6 +98,11 @@ class Game(metaclass=Singleton):
         # Compute new normalized (x, y) coordinates of the Character
         new_x = char_x + x_offset
         new_y = char_y + y_offset
+        # Compute new Character orientation in regard to the camera orientation and the movement direction
+        orientation_dict = cfg.MV_CHAR_ORIENTATION_DICT.get(direction)
+        if direction_dict is None:
+            raise NotImplementedError(cfg.NOT_IMPLEMENTED_MOVE_ORIENTATION + ':' + direction)
+        new_orientation = orientation_dict[self.camera_orientation]
 
         # Check if movement is valid on the current map
         out_of_bounds = (new_x < 0
@@ -112,7 +117,7 @@ class Game(metaclass=Singleton):
                 if collide_tile_id in cfg.TILE_STAIRS_SLOPES:
                     # Move up a level
                     z_offset += 1
-                    self.test_character.move(x_offset, y_offset, z_offset)
+                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
                 else:
                     # Collision with terrain that can't be crossed, ignore move command
                     pass
@@ -123,13 +128,13 @@ class Game(metaclass=Singleton):
                 if (next_ground_tile_id == 0
                         or next_ground_tile_id in cfg.TILE_STAIRS_SLOPES):
                     # Stay on the same level
-                    self.test_character.move(x_offset, y_offset, z_offset)
+                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
                 else:
                     # Is the player currently on stairs or slope
                     if curr_ground_tile_id in cfg.TILE_STAIRS_SLOPES:
                         # Move down a level
                         z_offset -= 1
-                        self.test_character.move(x_offset, y_offset, z_offset)
+                        self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
                     else:
                         # Can't jump off of cliffs, ignore move command
                         pass

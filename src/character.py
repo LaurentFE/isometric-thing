@@ -148,9 +148,11 @@ class Character(pygame.sprite.Sprite):
         else:
             return False
 
-    # Moves the character by offsetting both it's normalized (North) x,y coord, and z coord by the provided values.
+    # Moves the Character by offsetting both it's normalized (North) x,y coord, and z coord by the provided values.
     # Values mus be normalized (North), validation of correct coordinates relative to the map is not handled.
-    def move(self, normalized_x_offset: int, normalized_y_offset: int, z_offset: int) -> None:
+    # Changes the Character orientation to the set value
+    def move(self, normalized_x_offset: int, normalized_y_offset: int, z_offset: int, orientation: str) -> None:
         self.coord_x += normalized_x_offset
         self.coord_y += normalized_y_offset
         self.coord_z += z_offset
+        self.orientation = orientation
