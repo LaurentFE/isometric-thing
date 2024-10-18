@@ -1,9 +1,9 @@
 import sys
 import pygame
 import src.config as cfg
-import src.support as support
+import src.support as sup
 import src.tile_set as tile_set
-import time
+import src.character as character
 
 
 class Singleton(type):
@@ -15,91 +15,8 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-# Takes in char_coord as seen in default view (North), returns x,y,z in context of the specified camera orientation
-def get_orientation_coord(map_width: int, map_length: int, char_coord: tuple, camera_orientation: str):
-    if camera_orientation == cfg.CAMERA_WEST:
-        x = map_width - 1 - char_coord[1]
-        y = char_coord[0]
-    elif camera_orientation == cfg.CAMERA_EAST:
-        x = char_coord[1]
-        y = map_length - 1 - char_coord[0]
-    elif camera_orientation == cfg.CAMERA_SOUTH:
-        x = map_width - 1 - char_coord[0]
-        y = map_length - 1 - char_coord[1]
-    else:
-        if camera_orientation != cfg.CAMERA_NORTH:
-            print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', camera_orientation, file=sys.stderr, flush=True)
-        x = char_coord[0]
-        y = char_coord[1]
-
-    return x, y, char_coord[2]
-
-
-# Takes in tile_coord in context of the camera_orientation, returns the correct sprite_id from the unmodified
-# (north oriented) default sprite_map
-def get_orientation_tile_sprite(sprite_map: list, tile_coord: tuple, camera_orientation: str):
-    length = len(sprite_map[0])
-    width = len(sprite_map[0][0])
-    if camera_orientation == cfg.CAMERA_WEST:
-        sprite_id = sprite_map[tile_coord[2]][length - 1 - tile_coord[0]][tile_coord[1]]
-    elif camera_orientation == cfg.CAMERA_EAST:
-        sprite_id = sprite_map[tile_coord[2]][tile_coord[0]][width - 1 - tile_coord[1]]
-    elif camera_orientation == cfg.CAMERA_SOUTH:
-        sprite_id = sprite_map[tile_coord[2]][length - 1 - tile_coord[1]][width - 1 - tile_coord[0]]
-    else:
-        if camera_orientation != cfg.CAMERA_NORTH:
-            print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', camera_orientation, file=sys.stderr, flush=True)
-        sprite_id = sprite_map[tile_coord[2]][tile_coord[1]][tile_coord[0]]
-
-    return sprite_id
-
-
-# Coordinates received are the tile x,y,z in context of the current camera rotation
-def get_sprite_rect(sprite_coord: tuple, is_character=False):
-    if len(sprite_coord) != 3:
-        raise ValueError(cfg.INCORRECT_COORD_FORMAT + ' : ' + sprite_coord)
-
-    height_adjusted_x = sprite_coord[0] - sprite_coord[2]
-    height_adjusted_y = sprite_coord[1] - sprite_coord[2]
-    display_x = cfg.TILE0_X + cfg.TILE_X_OFFSET * (height_adjusted_x - height_adjusted_y)
-    display_y = cfg.TILE0_Y + cfg.TILE_Y_OFFSET * (height_adjusted_x + height_adjusted_y)
-
-    if is_character:
-        display_x += cfg.CHARACTER_X_CENTER_OFFSET
-        display_y += cfg.CHARACTER_Y_CENTER_OFFSET
-
-    return pygame.Rect(display_x, display_y, cfg.SPRITE_SIZE, cfg.SPRITE_SIZE)
-
-
-# Coordinates received are the tile x,y,z in context of the current camera rotation
-# Player coordinates are adjusted to the x,y,z in context of the current camera rotation
-def is_character_behind_tile(tile_coord: tuple, char_coord: tuple):
-    if len(tile_coord) != 3:
-        raise ValueError(cfg.INCORRECT_COORD_FORMAT + ' : ' + tile_coord)
-    elif len(char_coord) != 3:
-        raise ValueError(cfg.INCORRECT_COORD_FORMAT + ' : ' + char_coord)
-
-    t_x = tile_coord[0]
-    t_y = tile_coord[1]
-    t_z = tile_coord[2]
-    c_x = char_coord[0]
-    c_y = char_coord[1]
-    c_z = char_coord[2]
-    player_height_diff = t_z - c_z
-    tile_rect = get_sprite_rect(tile_coord)
-    player_rect = get_sprite_rect(char_coord, True)
-
-    if (player_height_diff > 0
-            and t_x >= c_x
-            and t_y >= c_y
-            and tile_rect.colliderect(player_rect)):
-        return True
-    else:
-        return False
-
-
 class Game(metaclass=Singleton):
-    def __init__(self):
+    def __init__(self) -> None:
         # general setup
         pygame.init()
         self.screen = pygame.display.set_mode((cfg.SCREEN_WIDTH, cfg.SCREEN_HEIGHT))
@@ -112,80 +29,172 @@ class Game(metaclass=Singleton):
         # At least two, for the couples of views that don't share width & length.
         self.map = []
         self.map_name = 'proto_map_homemade'
-        for i in range(3):
-            self.map.append(support.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
-        self.map_width = len(self.map[0][0])
-        self.map_length = len(self.map[0])
+        self.map_height = 4
+        for i in range(self.map_height):
+            self.map.append(sup.import_csv_layout(f'{cfg.MAPS_FOLDER}{self.map_name}_{i}{cfg.MAPS_EXTENSION}'))
+        self.camera_orientation = cfg.CAMERA_NORTH
 
-        self.char_test_tileset = tile_set.TileSet(cfg.TILE_CHARACTER, cfg.CHARACTER_TEST)
-        self.player_x = 2
-        self.player_y = 2
-        self.player_z = 0
+        self.test_character = character.Character((), cfg.CHARACTER_TEST, (2, 2, 2))
+        self.key_pressed_start_timer = 0
+        self.key_pressed_cooldown = cfg.KEY_PRESSED_COOLDOWN
 
-    def get_player_coord(self):
-        return self.player_x, self.player_y, self.player_z
+    # Takes in tile_coord in context of the camera_orientation, returns the correct sprite_id from the unmodified
+    # (north oriented) default map
+    def get_orientation_tile_sprite_id(self, tile_coord: tuple) -> int:
+        if self.camera_orientation == cfg.CAMERA_WEST:
+            sprite_id = self.map[tile_coord[2]][cfg.MAP_LENGTH - 1 - tile_coord[0]][tile_coord[1]]
+        elif self.camera_orientation == cfg.CAMERA_EAST:
+            sprite_id = self.map[tile_coord[2]][tile_coord[0]][cfg.MAP_WIDTH - 1 - tile_coord[1]]
+        elif self.camera_orientation == cfg.CAMERA_SOUTH:
+            sprite_id = self.map[tile_coord[2]][cfg.MAP_LENGTH - 1 - tile_coord[1]][cfg.MAP_WIDTH - 1 - tile_coord[0]]
+        else:
+            if self.camera_orientation != cfg.CAMERA_NORTH:
+                print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', self.camera_orientation, file=sys.stderr, flush=True)
+            sprite_id = self.map[tile_coord[2]][tile_coord[1]][tile_coord[0]]
 
-    def display_level(self, camera_orientation: str):
-        for map_x in range(self.map_width):
-            for map_y in range(self.map_length):
-                for map_z in range(len(self.map)):
-                    if camera_orientation not in cfg.CAMERA_ORIENTATIONS:
-                        print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', camera_orientation, file=sys.stderr, flush=True)
-                        camera_orientation = cfg.CAMERA_NORTH
+        return int(sprite_id)
 
-                    sprite_id = get_orientation_tile_sprite(self.map, (map_x, map_y, map_z), camera_orientation)
-                    player_x, player_y, player_z = get_orientation_coord(self.map_width,
-                                                                         self.map_length,
-                                                                         self.get_player_coord(),
-                                                                         camera_orientation)
-                    if sprite_id != '-1':
-                        sprite = tile_set.TERRAIN_TILE_SET.get_sprite_image(int(sprite_id), camera_orientation)
-                        # Make a tile translucent to reveal character behind
-                        if is_character_behind_tile((map_x, map_y, map_z),
-                                                    (player_x, player_y, player_z)):
-                            sprite.set_alpha(128)
-                        self.screen.blit(sprite, get_sprite_rect((map_x, map_y, map_z)))
+    def display_level(self) -> None:
+        for map_x in range(cfg.MAP_WIDTH):
+            for map_y in range(cfg.MAP_LENGTH):
+                for map_z in range(len(self.map) + 1):
+                    if self.camera_orientation not in cfg.CAMERA_ORIENTATIONS:
+                        print(cfg.UNKNOWN_CAMERA_ORIENTATION, ':', self.camera_orientation, file=sys.stderr, flush=True)
+                        self.camera_orientation = cfg.CAMERA_NORTH
+
+                    if map_z < len(self.map):
+                        sprite_id = self.get_orientation_tile_sprite_id((map_x, map_y, map_z))
+                        if sprite_id != -1:
+                            sprite = tile_set.TERRAIN_TILE_SET.get_sprite_image(sprite_id, self.camera_orientation)
+                            # Make a tile translucent to reveal character behind
+                            if self.test_character.is_character_behind_tile((map_x, map_y, map_z),
+                                                                            self.camera_orientation):
+                                sprite.set_alpha(128)
+                            self.screen.blit(sprite, sup.get_sprite_rect((map_x, map_y, map_z)))
 
                     # Draws a character at its proper coordinates
                     # Redraws a character if a tile behind it but higher hides the previous character drawing
+                    player_x, player_y, player_z = self.test_character.get_orientation_coord(self.camera_orientation)
                     if player_x == map_x and player_y == map_y and player_z == map_z:
-                        self.screen.blit(self.char_test_tileset.get_sprite_image(0, camera_orientation),
-                                         get_sprite_rect((map_x, map_y, map_z+1), True))
+                        character_ground_tile_id = self.get_orientation_tile_sprite_id((map_x, map_y, map_z - 1))
+                        is_on_stairs = character_ground_tile_id in cfg.TILE_STAIRS_SLOPES
+                        character_sprite = self.test_character.get_display_sprite(self.camera_orientation)
+                        character_rect = self.test_character.get_rectangle(self.camera_orientation, is_on_stairs)
+                        self.screen.blit(character_sprite, character_rect)
 
-                    if sprite_id != '-1':
-                        pygame.display.update()
-                        time.sleep(0.05)
+    # Computes the coord of the selected character according to the camera orientation and movement direction.
+    # Checks if the movement is valid (not out of bounds, no collision with terrain, use of stairs/slopes).
+    # If appropriate, moves the character by the corresponding offsets of normalized (North) x,y,z
+    def move_selected_character(self, direction: str):
+        char_x = self.test_character.coord_x
+        char_y = self.test_character.coord_y
+        char_z = self.test_character.coord_z
 
-    def run_old(self):
-        camera_orientation = 0
+        # Compute normalized (x, y) offset in regard to the camera orientation and the movement direction
+        direction_dict = cfg.MV_OFFSET_DICT.get(direction)
+        if direction_dict is None:
+            raise NotImplementedError(cfg.NOT_IMPLEMENTED_MOVE_DIRECTION + ':' + direction)
+        x_offset = direction_dict[self.camera_orientation][0]
+        y_offset = direction_dict[self.camera_orientation][1]
+        z_offset = 0
+        # Compute new normalized (x, y) coordinates of the Character
+        new_x = char_x + x_offset
+        new_y = char_y + y_offset
+        # Compute new Character orientation in regard to the camera orientation and the movement direction
+        orientation_dict = cfg.MV_CHAR_ORIENTATION_DICT.get(direction)
+        if direction_dict is None:
+            raise NotImplementedError(cfg.NOT_IMPLEMENTED_MOVE_ORIENTATION + ':' + direction)
+        new_orientation = orientation_dict[self.camera_orientation]
+
+        # Check if movement is valid on the current map
+        out_of_bounds = (new_x < 0
+                         or new_x >= cfg.MAP_WIDTH
+                         or new_y < 0
+                         or new_y >= cfg.MAP_LENGTH)
+        if not out_of_bounds:
+            is_on_highest_tile = char_z == self.map_height
+            if not is_on_highest_tile:
+                collide_tile_id = int(self.map[char_z][new_y][new_x])
+                # Will the player collide with a tile on the same Z as them
+                if collide_tile_id != -1:
+                    # Is this tile stairs or a slope
+                    if collide_tile_id in cfg.TILE_STAIRS_SLOPES:
+                        # Move up a level
+                        z_offset = 1
+                        self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+                        return
+                    else:
+                        # Collision with terrain that can't be crossed, ignore move command
+                        return
+
+            curr_ground_tile_id = int(self.map[char_z - 1][char_y][char_x])
+            next_ground_tile_id = int(self.map[char_z - 1][new_y][new_x])
+            # Will the player stand on solid ground
+            if (next_ground_tile_id == 0
+                    or next_ground_tile_id in cfg.TILE_STAIRS_SLOPES):
+                # Stay on the same level
+                self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+            else:
+                # Is the player currently on stairs or slope
+                if curr_ground_tile_id in cfg.TILE_STAIRS_SLOPES:
+                    # Move down a level
+                    z_offset = -1
+                    self.test_character.move(x_offset, y_offset, z_offset, new_orientation)
+                else:
+                    # Can't jump off of cliffs, ignore move command
+                    return
+        else:
+            # Out of bounds, ignore move command
+            return
+
+    def handle_input(self, inputs: list) -> None:
+        current_time = pygame.time.get_ticks()
+        if current_time - self.key_pressed_start_timer >= self.key_pressed_cooldown:
+            self.key_pressed_start_timer = current_time
+
+            if cfg.KEY_DL in inputs:
+                self.move_selected_character(cfg.MV_DL)
+                inputs.remove(cfg.KEY_DL)
+            elif cfg.KEY_DR in inputs:
+                self.move_selected_character(cfg.MV_DR)
+                inputs.remove(cfg.KEY_DR)
+            elif cfg.KEY_UR in inputs:
+                self.move_selected_character(cfg.MV_UR)
+                inputs.remove(cfg.KEY_UR)
+            elif cfg.KEY_UL in inputs:
+                self.move_selected_character(cfg.MV_UL)
+                inputs.remove(cfg.KEY_UL)
+            elif cfg.KEY_CAMERA_CLOCKWISE in inputs:
+                camera_id = cfg.CAMERA_ORIENTATIONS.index(self.camera_orientation)
+                camera_id = (camera_id + 1) % len(cfg.CAMERA_ORIENTATIONS)
+                self.camera_orientation = cfg.CAMERA_ORIENTATIONS[camera_id]
+                inputs.remove(cfg.KEY_CAMERA_CLOCKWISE)
+            elif cfg.KEY_CAMERA_COUNTERCLOCKWISE in inputs:
+                camera_id = cfg.CAMERA_ORIENTATIONS.index(self.camera_orientation)
+                camera_id -= 1
+                if camera_id < 0:
+                    camera_id = len(cfg.CAMERA_ORIENTATIONS) - 1
+                self.camera_orientation = cfg.CAMERA_ORIENTATIONS[camera_id]
+                inputs.remove(cfg.KEY_CAMERA_COUNTERCLOCKWISE)
+            elif cfg.KEY_QUIT in inputs:
+                pygame.quit()
+                sys.exit()
+
+    def run(self) -> None:
+        keys_pressed = []
         while True:
             self.screen.fill(cfg.BACKGROUND_COLOR_NAME)
 
             # Run game loop here before display update
-            self.display_level(cfg.CAMERA_ORIENTATIONS[camera_orientation])
+            self.display_level()
 
             pygame.display.update()
             self.clock.tick(cfg.FPS)
 
-            camera_orientation = (camera_orientation + 1) % len(cfg.CAMERA_ORIENTATIONS)
-            time.sleep(2)
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
-    def run(self):
-        for camera_orientation in range(len(cfg.CAMERA_ORIENTATIONS)):
-            self.screen.fill(cfg.BACKGROUND_COLOR_NAME)
-
-            # Displays drawing tile by tile
-            # Requires adding pygame.display.update() and a timer.sleep(0.1) at the end of display_level()
-            # Better to put it in an if sprite_id != -1
-            self.display_level(cfg.CAMERA_ORIENTATIONS[camera_orientation])
-
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    keys_pressed.append(event.key)
+            self.handle_input(keys_pressed)
